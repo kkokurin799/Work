@@ -1,0 +1,11 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      SQLITE_PATH: /app/data/work.db
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
