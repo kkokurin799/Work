@@ -124,11 +124,14 @@ function baseUrl(): string {
   return process.env.APP_BASE_URL || "http://localhost:3000";
 }
 
+const heldLocks = new Set<number>();
+
 async function tryLock(key: number): Promise<boolean> {
-  const rows = await query<{ locked: boolean }>("SELECT pg_try_advisory_lock($1) AS locked", [key]);
-  return rows[0]?.locked === true;
+  if (heldLocks.has(key)) return false;
+  heldLocks.add(key);
+  return true;
 }
 
 async function unlock(key: number): Promise<void> {
-  await query("SELECT pg_advisory_unlock($1)", [key]);
+  heldLocks.delete(key);
 }

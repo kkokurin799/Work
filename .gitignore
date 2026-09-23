@@ -1,6 +1,10 @@
 node_modules
 .next
 backups
+data
+*.db
+*.db-wal
+*.db-shm
 .env
 .env.local
 *.log

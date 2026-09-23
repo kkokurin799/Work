@@ -7,7 +7,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     fileParallelism: false,
     env: {
-      DATABASE_URL: "postgres://work:work@127.0.0.1:5432/work",
+      SQLITE_PATH: ":memory:",
       SESSION_SECRET: "test-session-secret",
       OWNER_EMAIL: "owner@example.com",
       OWNER_PASSWORD: "work-owner-pass",

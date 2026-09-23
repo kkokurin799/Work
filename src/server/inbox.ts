@@ -139,6 +139,15 @@ export async function applyInboundForm(id: string, input: ProjectInput | TaskInp
   return task.number;
 }
 
+function parseJson(value: unknown): unknown {
+  if (typeof value !== "string") return value ?? null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 function mapInbound(row: Record<string, unknown>): Inbound {
   return {
     id: String(row.id),
@@ -148,7 +157,7 @@ function mapInbound(row: Record<string, unknown>): Inbound {
     receivedAt: String(row.received_at),
     parseStatus: String(row.parse_status),
     parseError: (row.parse_error as string | null) ?? null,
-    parsed: row.parsed_json,
+    parsed: parseJson(row.parsed_json),
     taskId: (row.task_id as string | null) ?? null,
     projectId: (row.project_id as string | null) ?? null,
     reply: (row.reply as string | null) ?? null,

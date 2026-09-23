@@ -50,7 +50,7 @@ export async function authenticate(email: string, password: string): Promise<Cur
     [email.trim()],
   );
   const user = rows[0];
-  if (!user || !user.is_active || !(await verifyPassword(password, user.password_hash))) {
+  if (!user || Number(user.is_active) === 0 || !(await verifyPassword(password, user.password_hash))) {
     throw new InputError({ password: "Неверная почта или пароль." });
   }
   return mapUser(user);

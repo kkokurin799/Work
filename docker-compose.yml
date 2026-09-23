@@ -1,14 +1,11 @@
 services:
-  db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: work
-      POSTGRES_PASSWORD: work
-      POSTGRES_DB: work
+  app:
+    build: .
     ports:
-      - "5432:5432"
+      - "3000:3000"
+    env_file: .env
+    environment:
+      SQLITE_PATH: /app/data/work.db
     volumes:
-      - work-data:/var/lib/postgresql/data
-
-volumes:
-  work-data:
+      - ./data:/app/data
+      - ./backups:/app/backups

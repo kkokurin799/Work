@@ -1,5 +1,4 @@
-import type { PoolClient } from "pg";
-import { query, txQuery, withTx } from "../db/pool";
+import { query, txQuery, withTx, type DbClient } from "../db/pool";
 import { InputError } from "./errors";
 
 export type CatalogKind = "products" | "clients" | "teams";
@@ -115,7 +114,7 @@ export async function updatePerson(id: string, input: { name?: string; teamId?: 
   }
 }
 
-export async function findOrCreatePerson(client: PoolClient, name: string): Promise<{ id: string; name: string }> {
+export async function findOrCreatePerson(client: DbClient, name: string): Promise<{ id: string; name: string }> {
   const trimmed = cleanName(name);
   const found = await txQuery<{ id: string; name: string }>(
     client,
@@ -135,7 +134,7 @@ export async function findOrCreatePerson(client: PoolClient, name: string): Prom
 }
 
 export async function findActiveByName(
-  client: PoolClient,
+  client: DbClient,
   kind: CatalogKind,
   name: string,
 ): Promise<{ id: string; name: string } | null> {
@@ -163,12 +162,14 @@ export function cleanName(name: string): string {
   return trimmed;
 }
 
-export async function withCatalogTx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function withCatalogTx<T>(fn: (client: DbClient) => Promise<T>): Promise<T> {
   return withTx(fn);
 }
 
 function rethrowUnique(error: unknown, message: string): never {
-  if (typeof error === "object" && error && "code" in error && error.code === "23505") {
+  const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+  const text = error instanceof Error ? error.message : "";
+  if (code === "23505" || /UNIQUE constraint failed/i.test(text)) {
     throw new InputError({ name: message });
   }
   throw error;

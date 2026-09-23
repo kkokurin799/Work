@@ -9,18 +9,18 @@
 
 ## Запуск
 
-Нужны Node.js 22 и PostgreSQL 16.
+Нужен Node.js 22.5 или новее. Отдельная база и Docker не нужны: данные лежат в файле SQLite.
 
 ```bash
 cp .env.example .env
-# поправьте DATABASE_URL, SESSION_SECRET, OWNER_EMAIL и OWNER_PASSWORD
+# задайте SESSION_SECRET, OWNER_EMAIL и OWNER_PASSWORD
 npm install
 npm test
 npm run dev
 ```
 
-Первый запуск создаёт таблицы и владельца из `OWNER_EMAIL` / `OWNER_PASSWORD`. Вход — по этой почте и паролю.
+Откройте http://localhost:3000 и войдите почтой и паролем из `.env`. Первый запуск сам создаёт `data/work.db`, таблицы и владельца. Пароль записывается только при создании пользователя: если почта уже есть в файле, смена `OWNER_PASSWORD` её не обновляет.
 
-`docker compose up -d` поднимает только базу. Приложение читает `DATABASE_URL`.
+`SQLITE_PATH` можно не задавать: по умолчанию это `./data/work.db`. Копия базы пишется в `backups/work-ГГГГ-ММ-ДД.db` раз в сутки, хранятся 14 последних файлов.
 
-Срез Telegram включается переменными `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` и `TELEGRAM_OWNER_USER_ID`. Webhook: `POST /api/telegram/webhook`. Срез почты — `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD` и `IMAP_ALLOWED_FROM`. Пока переменные пустые, реестр работает без бота и без ящика. Копия базы пишется в `backups/` раз в сутки, если доступен `pg_dump`.
+Срез Telegram включается переменными `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` и `TELEGRAM_OWNER_USER_ID`. Webhook: `POST /api/telegram/webhook`. Для него нужен публичный HTTPS-адрес, локального `npm run dev` недостаточно. Срез почты — `IMAP_HOST`, `IMAP_USER`, `IMAP_PASSWORD` и `IMAP_ALLOWED_FROM`. Пока переменные пустые, реестр работает без бота и без ящика.

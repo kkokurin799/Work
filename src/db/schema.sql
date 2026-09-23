@@ -1,63 +1,61 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
 CREATE TABLE IF NOT EXISTS users (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   email text NOT NULL UNIQUE,
   name text NOT NULL,
   password_hash text NOT NULL,
   role text NOT NULL CHECK (role IN ('owner', 'editor', 'viewer')),
   telegram_user_id text,
   telegram_chat_id text,
-  is_active boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now()
+  is_active integer NOT NULL DEFAULT 1,
+  created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE TABLE IF NOT EXISTS products (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   name text NOT NULL,
-  archived_at timestamptz
+  archived_at text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS products_name_unique ON products (lower(btrim(name)));
+CREATE UNIQUE INDEX IF NOT EXISTS products_name_unique ON products (lower(trim(name)));
 
 CREATE TABLE IF NOT EXISTS clients (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   name text NOT NULL,
-  archived_at timestamptz
+  archived_at text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS clients_name_unique ON clients (lower(btrim(name)));
+CREATE UNIQUE INDEX IF NOT EXISTS clients_name_unique ON clients (lower(trim(name)));
 
 CREATE TABLE IF NOT EXISTS teams (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   name text NOT NULL,
-  archived_at timestamptz
+  archived_at text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS teams_name_unique ON teams (lower(btrim(name)));
+CREATE UNIQUE INDEX IF NOT EXISTS teams_name_unique ON teams (lower(trim(name)));
 
 CREATE TABLE IF NOT EXISTS people (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   name text NOT NULL,
-  team_id uuid REFERENCES teams (id),
-  archived_at timestamptz
+  team_id text REFERENCES teams (id),
+  archived_at text
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS people_name_unique ON people (lower(btrim(name)));
+CREATE UNIQUE INDEX IF NOT EXISTS people_name_unique ON people (lower(trim(name)));
 
 CREATE TABLE IF NOT EXISTS projects (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   number text NOT NULL UNIQUE,
   name text NOT NULL,
-  product_id uuid NOT NULL REFERENCES products (id),
-  client_id uuid NOT NULL REFERENCES clients (id),
-  team_id uuid NOT NULL REFERENCES teams (id),
+  product_id text NOT NULL REFERENCES products (id),
+  client_id text NOT NULL REFERENCES clients (id),
+  team_id text NOT NULL REFERENCES teams (id),
   status text NOT NULL CHECK (status IN ('draft', 'preparing', 'active', 'paused', 'launched', 'cancelled')),
-  due_date date,
+  due_date text,
   summary text,
-  created_by uuid NOT NULL REFERENCES users (id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  created_by text NOT NULL REFERENCES users (id),
+  created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  updated_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE INDEX IF NOT EXISTS projects_team_idx ON projects (team_id);
@@ -66,26 +64,26 @@ CREATE INDEX IF NOT EXISTS projects_client_idx ON projects (client_id);
 CREATE INDEX IF NOT EXISTS projects_due_idx ON projects (due_date);
 
 CREATE TABLE IF NOT EXISTS tasks (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   kind text NOT NULL CHECK (kind IN ('project_task', 'backlog')),
   number text NOT NULL UNIQUE,
   description text NOT NULL,
   external_number text,
-  project_id uuid REFERENCES projects (id),
-  product_id uuid NOT NULL REFERENCES products (id),
-  team_id uuid NOT NULL REFERENCES teams (id),
-  person_id uuid NOT NULL REFERENCES people (id),
-  client_id uuid REFERENCES clients (id),
+  project_id text REFERENCES projects (id),
+  product_id text NOT NULL REFERENCES products (id),
+  team_id text NOT NULL REFERENCES teams (id),
+  person_id text NOT NULL REFERENCES people (id),
+  client_id text REFERENCES clients (id),
   beneficiary text CHECK (beneficiary IN ('client', 'all_clients', 'internal')),
   side text CHECK (side IN ('ours', 'client', 'partner')),
   status text NOT NULL,
-  due_date date,
-  t14_due_date date,
+  due_date text,
+  t14_due_date text,
   source text NOT NULL CHECK (source IN ('manual', 'telegram', 'email')),
-  inbound_message_id uuid,
-  created_by uuid NOT NULL REFERENCES users (id),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  inbound_message_id text,
+  created_by text NOT NULL REFERENCES users (id),
+  created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  updated_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   CONSTRAINT tasks_kind_fields CHECK (
     (
       kind = 'project_task'
@@ -113,31 +111,31 @@ CREATE INDEX IF NOT EXISTS tasks_due_idx ON tasks (due_date);
 CREATE INDEX IF NOT EXISTS tasks_project_idx ON tasks (project_id);
 
 CREATE TABLE IF NOT EXISTS inbound_messages (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   channel text NOT NULL CHECK (channel IN ('telegram', 'email')),
   external_id text NOT NULL,
   sender text NOT NULL,
   raw_text text NOT NULL,
-  received_at timestamptz NOT NULL DEFAULT now(),
+  received_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
   parse_status text NOT NULL CHECK (parse_status IN ('applied', 'needs_review', 'rejected', 'duplicate')),
   parse_error text,
-  parsed_json jsonb,
-  task_id uuid REFERENCES tasks (id),
-  project_id uuid REFERENCES projects (id),
+  parsed_json text,
+  task_id text REFERENCES tasks (id),
+  project_id text REFERENCES projects (id),
   reply text,
   UNIQUE (channel, external_id)
 );
 
 CREATE TABLE IF NOT EXISTS alert_deliveries (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
   kind text NOT NULL CHECK (kind IN ('t14', 'digest')),
-  task_id uuid REFERENCES tasks (id),
-  digest_date date,
+  task_id text REFERENCES tasks (id),
+  digest_date text,
   payload text NOT NULL,
   status text NOT NULL CHECK (status IN ('pending', 'sent', 'failed')),
   error text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  sent_at timestamptz
+  created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+  sent_at text
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS alert_digest_day_unique
@@ -145,20 +143,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS alert_digest_day_unique
   WHERE kind = 'digest';
 
 CREATE TABLE IF NOT EXISTS activity_log (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  actor_id uuid REFERENCES users (id),
+  id text PRIMARY KEY DEFAULT (gen_random_uuid()),
+  actor_id text REFERENCES users (id),
   entity_type text NOT NULL,
-  entity_id uuid NOT NULL,
+  entity_id text NOT NULL,
   action text NOT NULL,
-  diff jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  diff text NOT NULL,
+  created_at text NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
 );
 
 CREATE INDEX IF NOT EXISTS activity_entity_idx ON activity_log (entity_type, entity_id, created_at);
-
-ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_inbound_fk;
-ALTER TABLE tasks
-  ADD CONSTRAINT tasks_inbound_fk FOREIGN KEY (inbound_message_id) REFERENCES inbound_messages (id);
 
 CREATE TABLE IF NOT EXISTS counters (
   name text PRIMARY KEY,
@@ -171,23 +165,4 @@ ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO clients (name)
 VALUES ('Внутренний')
-ON CONFLICT ((lower(btrim(name)))) DO NOTHING;
-
-CREATE OR REPLACE FUNCTION work_attention(
-  task_status text,
-  project_status text,
-  due_date date,
-  today date
-) RETURNS text
-LANGUAGE sql
-IMMUTABLE
-AS $$
-  SELECT CASE
-    WHEN task_status IN ('done', 'cancelled') THEN 'closed'
-    WHEN project_status IN ('paused', 'launched', 'cancelled') THEN 'closed'
-    WHEN due_date IS NULL THEN 'undated'
-    WHEN due_date < today THEN 'overdue'
-    WHEN due_date <= today + 14 THEN 'soon'
-    ELSE 'ok'
-  END
-$$;
+ON CONFLICT (lower(trim(name))) DO NOTHING;

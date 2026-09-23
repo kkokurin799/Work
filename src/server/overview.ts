@@ -49,7 +49,7 @@ export async function overview(filters: Filters): Promise<Overview> {
             OR (t.kind = 'backlog' AND (t.beneficiary = 'all_clients' OR (t.beneficiary = 'client' AND t.client_id = $4)))
           )) AS undated_tasks,
       (SELECT count(*) FROM inbound_messages WHERE parse_status = 'needs_review') AS inbox,
-      (SELECT count(*) FROM alert_deliveries WHERE status = 'failed' AND created_at > now() - interval '1 day') AS failed,
+      (SELECT count(*) FROM alert_deliveries WHERE status = 'failed' AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ','now','-1 day')) AS failed,
       (SELECT max(sent_at) FROM alert_deliveries WHERE kind = 'digest' AND status = 'sent') AS last_digest`,
     [today, filters.teamId ?? null, filters.productId ?? null, filters.clientId ?? null, filters.dueOnOrBefore ?? null],
   );

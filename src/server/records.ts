@@ -1,10 +1,9 @@
-import type { PoolClient } from "pg";
 import { moscowToday, parseUserDate } from "../domain/dates";
 import { clearedT14Mark, type Attention } from "../domain/attention";
 import { label, SIDES, BENEFICIARIES } from "../domain/labels";
 import { intakeReply } from "../domain/messages";
 import { canonicalBeneficiary, parseMessage, statusCode, type ParsedMessage, type RecordType } from "../domain/parse";
-import { query, txQuery, withTx } from "../db/pool";
+import { query, txQuery, withTx, type DbClient } from "../db/pool";
 import { findActiveByName, findOrCreatePerson, suggestNames } from "./catalog";
 import { InputError } from "./errors";
 
@@ -103,21 +102,24 @@ export async function listProjects(filters: Filters, lifecycle?: string | null):
      JOIN products pr ON pr.id = p.product_id
      JOIN clients c ON c.id = p.client_id
      JOIN teams tm ON tm.id = p.team_id
-     LEFT JOIN LATERAL (
-       SELECT count(*) FILTER (WHERE t.status NOT IN ('done', 'cancelled')) AS open_count,
+     LEFT JOIN (
+       SELECT t.project_id,
+              count(*) FILTER (WHERE t.status NOT IN ('done', 'cancelled')) AS open_count,
               count(*) FILTER (WHERE t.status NOT IN ('done', 'cancelled') AND t.side = 'client') AS client_side_count,
               min(t.due_date) FILTER (WHERE t.status NOT IN ('done', 'cancelled')) AS nearest_due,
-              min(CASE work_attention(t.status, p.status, t.due_date, $1::date)
+              min(CASE work_attention(t.status, p2.status, t.due_date, $1::date)
                     WHEN 'overdue' THEN 0 WHEN 'soon' THEN 1 WHEN 'undated' THEN 2 WHEN 'ok' THEN 3 ELSE 9 END)
-                FILTER (WHERE work_attention(t.status, p.status, t.due_date, $1::date) <> 'closed') AS task_rank
-       FROM tasks t WHERE t.project_id = p.id
-     ) stats ON true
+                FILTER (WHERE work_attention(t.status, p2.status, t.due_date, $1::date) <> 'closed') AS task_rank
+       FROM tasks t
+       JOIN projects p2 ON p2.id = t.project_id
+       GROUP BY t.project_id
+     ) stats ON stats.project_id = p.id
      WHERE ($2::uuid IS NULL OR p.team_id = $2)
        AND ($3::uuid IS NULL OR p.product_id = $3)
        AND ($4::uuid IS NULL OR p.client_id = $4)
        AND ($5::date IS NULL OR (p.due_date IS NOT NULL AND p.due_date <= $5))
        AND ($6::text IS NULL OR ($6 = 'open' AND p.status IN ('preparing', 'active')))
-     ORDER BY LEAST(
+     ORDER BY min(
        CASE work_attention('todo', p.status, p.due_date, $1::date)
          WHEN 'overdue' THEN 0 WHEN 'soon' THEN 1 WHEN 'ok' THEN 2 WHEN 'undated' THEN 3 ELSE 4 END,
        COALESCE(stats.task_rank, 4)
@@ -201,7 +203,7 @@ export async function getTask(number: string): Promise<(TaskCard & { activity: A
     ...task,
     activity: activity.map((item) => ({
       action: item.action,
-      diff: item.diff,
+      diff: parseDiff(item.diff),
       actor: item.actor,
       createdAt: item.created_at,
     })),
@@ -301,11 +303,11 @@ export async function projectActivity(projectId: string): Promise<ActivityItem[]
      ORDER BY a.created_at`,
     [projectId],
   );
-  return rows.map((item) => ({ action: item.action, diff: item.diff, actor: item.actor, createdAt: item.created_at }));
+  return rows.map((item) => ({ action: item.action, diff: parseDiff(item.diff), actor: item.actor, createdAt: item.created_at }));
 }
 
 export async function applyParsed(
-  client: PoolClient,
+  client: DbClient,
   parsed: Extract<ParsedMessage, { ok: true }>,
   userId: string,
   source: "telegram" | "email",
@@ -400,7 +402,7 @@ export async function applyParsed(
   };
 }
 
-async function insertProject(client: PoolClient, input: ProjectInput, userId: string): Promise<ProjectCard> {
+async function insertProject(client: DbClient, input: ProjectInput, userId: string): Promise<ProjectCard> {
   const next = {
     name: input.name.trim(),
     productId: input.productId,
@@ -426,7 +428,7 @@ async function insertProject(client: PoolClient, input: ProjectInput, userId: st
   return cards.find((item) => item.id === rows[0].id)!;
 }
 
-async function insertTask(client: PoolClient, input: TaskInput, userId: string): Promise<TaskCard> {
+async function insertTask(client: DbClient, input: TaskInput, userId: string): Promise<TaskCard> {
   const description = input.description.trim();
   if (!description) throw new InputError({ description: "Опишите задачу." });
   if (description.length > 20000) throw new InputError({ description: "Описание длиннее 20 тысяч знаков." });
@@ -498,7 +500,7 @@ async function insertTask(client: PoolClient, input: TaskInput, userId: string):
   return (await taskById(client, rows[0].id))!;
 }
 
-async function patchTask(client: PoolClient, number: string, patch: Partial<TaskInput>, userId: string): Promise<TaskCard> {
+async function patchTask(client: DbClient, number: string, patch: Partial<TaskInput>, userId: string): Promise<TaskCard> {
   const current = await taskByNumber(client, number);
   if (!current) throw new InputError({ number: "Задача не найдена." });
   const person = patch.assigneeName ? await findOrCreatePerson(client, patch.assigneeName) : { id: current.personId, name: current.assignee };
@@ -568,7 +570,7 @@ async function patchTask(client: PoolClient, number: string, patch: Partial<Task
 }
 
 async function patchProjectFields(
-  client: PoolClient,
+  client: DbClient,
   number: string,
   fields: Extract<ParsedMessage, { ok: true }>["fields"],
   userId: string,
@@ -611,7 +613,7 @@ async function patchProjectFields(
 }
 
 async function taskInputFromFields(
-  client: PoolClient,
+  client: DbClient,
   parsed: Extract<ParsedMessage, { ok: true }>,
   source: "telegram" | "email",
   inboundId: string,
@@ -663,7 +665,7 @@ async function taskInputFromFields(
 }
 
 async function taskPatchFromFields(
-  client: PoolClient,
+  client: DbClient,
   type: RecordType,
   fields: Extract<ParsedMessage, { ok: true }>["fields"],
 ): Promise<Partial<TaskInput>> {
@@ -686,7 +688,7 @@ async function taskPatchFromFields(
 }
 
 async function requireByName(
-  client: PoolClient,
+  client: DbClient,
   kind: "products" | "clients" | "teams",
   name: string,
   title: string,
@@ -704,7 +706,7 @@ function statusSide(value: string): string {
   return code;
 }
 
-async function findNumber(client: PoolClient, number: string): Promise<{ type: RecordType } | null> {
+async function findNumber(client: DbClient, number: string): Promise<{ type: RecordType } | null> {
   const task = await txQuery<{ kind: string }>(client, "SELECT kind FROM tasks WHERE number = $1", [number]);
   if (task[0]) return { type: task[0].kind === "backlog" ? "backlog" : "task" };
   const project = await txQuery(client, "SELECT id FROM projects WHERE number = $1", [number]);
@@ -712,7 +714,7 @@ async function findNumber(client: PoolClient, number: string): Promise<{ type: R
   return null;
 }
 
-async function allocate(client: PoolClient, name: "project" | "task" | "backlog", prefix: string): Promise<string> {
+async function allocate(client: DbClient, name: "project" | "task" | "backlog", prefix: string): Promise<string> {
   const rows = await txQuery<{ value: number }>(
     client,
     "UPDATE counters SET value = value + 1 WHERE name = $1 RETURNING value",
@@ -721,19 +723,19 @@ async function allocate(client: PoolClient, name: "project" | "task" | "backlog"
   return `${prefix}-${String(rows[0].value).padStart(4, "0")}`;
 }
 
-async function taskById(client: PoolClient, id: string): Promise<TaskCard | null> {
+async function taskById(client: DbClient, id: string): Promise<TaskCard | null> {
   const today = moscowToday();
   const rows = await txQuery<Record<string, unknown>>(client, `${TASK_SELECT} WHERE t.id = $2`, [today, id]);
   return rows[0] ? mapTask(rows[0]) : null;
 }
 
-async function taskByNumber(client: PoolClient, number: string): Promise<TaskCard | null> {
+async function taskByNumber(client: DbClient, number: string): Promise<TaskCard | null> {
   const today = moscowToday();
   const rows = await txQuery<Record<string, unknown>>(client, `${TASK_SELECT} WHERE t.number = $2`, [today, number]);
   return rows[0] ? mapTask(rows[0]) : null;
 }
 
-async function listProjectsIn(client: PoolClient, filters: Filters): Promise<ProjectCard[]> {
+async function listProjectsIn(client: DbClient, filters: Filters): Promise<ProjectCard[]> {
   const today = moscowToday();
   const rows = await txQuery<Record<string, unknown>>(
     client,
@@ -767,7 +769,7 @@ function labelFromProject(status: string): string {
 }
 
 async function writeDiff(
-  client: PoolClient,
+  client: DbClient,
   actorId: string,
   entityType: string,
   entityId: string,
@@ -857,6 +859,18 @@ function mapTask(row: Record<string, unknown>): TaskCard {
   };
 }
 
+function parseDiff(value: unknown): ActivityItem["diff"] {
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value) as ActivityItem["diff"];
+    } catch {
+      return {};
+    }
+  }
+  if (value && typeof value === "object") return value as ActivityItem["diff"];
+  return {};
+}
+
 function worse(left: Attention, right: Attention | null): Attention {
   const rank: Record<Attention, number> = { overdue: 0, soon: 1, undated: 2, ok: 3, closed: 4 };
   if (!right) return left;
@@ -864,10 +878,22 @@ function worse(left: Attention, right: Attention | null): Attention {
 }
 
 export async function resetBusinessData(): Promise<void> {
-  const { query } = await import("../db/pool");
-  await query(
-    `TRUNCATE alert_deliveries, activity_log, tasks, projects, inbound_messages, people, products, teams, clients RESTART IDENTITY CASCADE`,
-  );
-  await query("UPDATE counters SET value = 0");
-  await query("INSERT INTO clients (name) VALUES ('Внутренний')");
+  const { txQuery, withTx } = await import("../db/pool");
+  await withTx(async (client) => {
+    for (const table of [
+      "alert_deliveries",
+      "activity_log",
+      "inbound_messages",
+      "tasks",
+      "projects",
+      "people",
+      "products",
+      "teams",
+      "clients",
+    ]) {
+      await txQuery(client, `DELETE FROM ${table}`);
+    }
+    await txQuery(client, "UPDATE counters SET value = 0");
+    await txQuery(client, "INSERT INTO clients (name) VALUES ('Внутренний')");
+  });
 }
