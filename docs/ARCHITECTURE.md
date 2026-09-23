@@ -260,7 +260,7 @@ end
 due_date is not null and due_date <= $date
 ```
 
-Команда и клиент на проектах — поля проекта. На бэклоге команда — `tasks.team_id`. Клиент на бэклоге:
+Команда, продукт и клиент на проектах — поля проекта. На бэклоге команда — `tasks.team_id`, продукт — `tasks.product_id`. Клиент на бэклоге:
 
 ```sql
 beneficiary = 'all_clients'
@@ -269,7 +269,7 @@ or (beneficiary = 'client' and client_id = $client)
 
 При выбранном клиенте внутренние пункты не возвращаются. При пустом клиенте условия на адресата нет.
 
-Индексы: `tasks(kind, status)`, `tasks(team_id)`, `tasks(client_id)`, `tasks(due_date)`, `tasks(project_id)`, `projects(team_id)`, `projects(client_id)`, `projects(due_date)`.
+Индексы: `tasks(kind, status)`, `tasks(team_id)`, `tasks(product_id)`, `tasks(client_id)`, `tasks(due_date)`, `tasks(project_id)`, `projects(team_id)`, `projects(product_id)`, `projects(client_id)`, `projects(due_date)`.
 
 ## 7. Разбор текста
 
@@ -297,7 +297,7 @@ or (beneficiary = 'client' and client_id = $client)
 | `GET /api/overview` | Счётчики и короткий список внимания с учётом фильтров |
 | `GET, POST /api/projects` | Список и создание |
 | `GET, PATCH /api/projects/:number` | Карточка и правка |
-| `GET, POST /api/tasks` | Список задач и бэклога, query: `kind`, `team`, `client`, `due`, `project` |
+| `GET, POST /api/tasks` | Список задач и бэклога, query: `kind`, `team`, `product`, `client`, `due`, `project` |
 | `GET, PATCH /api/tasks/:number` | Карточка и правка |
 | `GET /api/inbox` | Входящие, фильтр по статусу разбора |
 | `POST /api/inbox/:id/apply` | Провести разобранное или поправленную форму |
@@ -380,6 +380,7 @@ or (beneficiary = 'client' and client_id = $client)
 - разбор каждого примера из раздела 10 ТЗ и каждого отказа: нет поля, кривая дата, неизвестный ключ, обновление чужим типом;
 - признак `soon`, `overdue`, `undated`, `closed`, включая проект на паузе;
 - сброс `t14_due_date` при переносе срока за окно и сохранение отметки при переносе внутри окна;
+- фильтр продукта на проектах и в бэклоге;
 - фильтр клиента для трёх видов «для кого»;
 - уникальность номера при двух одновременных вставках;
 - повтор `external_id` не создаёт вторую задачу.
