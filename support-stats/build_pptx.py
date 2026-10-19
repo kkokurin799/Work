@@ -16,13 +16,11 @@ NAVY2 = RGBColor(0x2E, 0x5A, 0x88)
 ACCENT = RGBColor(0xC0, 0x4A, 0x1A)
 TEAL = RGBColor(0x1F, 0x7A, 0x6B)
 GOLD = RGBColor(0xB5, 0x86, 0x2A)
-SLATE = RGBColor(0x5A, 0x67, 0x74)
 INK = RGBColor(0x1A, 0x1A, 0x1A)
 MUTED = RGBColor(0x5C, 0x5C, 0x5C)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 PAPER = RGBColor(0xF4, 0xF6, 0xF8)
 LINE = RGBColor(0xD0, 0xD7, 0xDE)
-RED = RGBColor(0xB4, 0x23, 0x18)
 
 W = Inches(13.333)
 H = Inches(7.5)
@@ -33,9 +31,6 @@ TAX = [29, 21, 19, 24, 26, 29]
 INTA = [11, 14, 9, 10, 13, 8]
 OPS = [16, 6, 7, 6, 11, 7]
 CORE = [2, 2, 3, 2, 2, 3]
-OTHER = [0, 1, 1, 0, 0, 0]
-CONS = [45, 29, 36, 27, 39, 36]
-DEF = [13, 14, 3, 12, 12, 11]
 
 
 def set_run(run, text, size=18, bold=False, color=INK, font="Calibri"):
@@ -64,7 +59,7 @@ def fill_solid(shape, color):
 
 
 def rect(slide, l, t, w, h, color):
-    sh = slide.shapes.add_shape(1, l, t, w, h)  # rectangle
+    sh = slide.shapes.add_shape(1, l, t, w, h)
     fill_solid(sh, color)
     return sh
 
@@ -76,9 +71,11 @@ def textbox(slide, l, t, w, h, lines, **kw):
 
 
 def footer(slide, page, total=9):
-    textbox(slide, Inches(0.6), Inches(7.15), Inches(10), Inches(0.28),
-            "Сопровождение брокерского обслуживания  ·  выгрузка задач на 19.10.2026  ·  период регистраций апрель–сентябрь 2026",
-            size=10, color=MUTED)
+    textbox(
+        slide, Inches(0.6), Inches(7.15), Inches(10.4), Inches(0.28),
+        "Сопровождение брокерского обслуживания  ·  выгрузка на 19.10.2026  ·  регистрации апрель–сентябрь 2026",
+        size=10, color=MUTED,
+    )
     textbox(slide, Inches(12.2), Inches(7.15), Inches(0.7), Inches(0.28),
             f"{page}/{total}", size=10, color=MUTED, align=PP_ALIGN.RIGHT)
 
@@ -120,7 +117,6 @@ def kpi_card(slide, l, t, w, h, value, label, sub, value_color=NAVY):
     sh.line.color.rgb = LINE
     tf = sh.text_frame
     tf.word_wrap = True
-    tf.auto_size = None
     p = tf.paragraphs[0]
     p.alignment = PP_ALIGN.LEFT
     r = p.add_run()
@@ -148,7 +144,7 @@ def add_table(slide, l, t, w, h, data, col_w=None, header=True):
             p.alignment = PP_ALIGN.CENTER if c else PP_ALIGN.LEFT
             run = p.add_run()
             is_header = header and r == 0
-            set_run(run, str(data[r][c]), size=12, bold=is_header or c == 0,
+            set_run(run, str(data[r][c]), size=11, bold=is_header or c == 0,
                     color=WHITE if is_header else INK)
             cell.vertical_anchor = MSO_ANCHOR.MIDDLE
             fill = NAVY if is_header else (PAPER if r % 2 == 0 else WHITE)
@@ -166,11 +162,12 @@ def slide1(prs):
     textbox(s, Inches(0.8), Inches(2.1), Inches(11.5), Inches(1.4),
             "Брокерское обслуживание:\nстатистика задач сопровождения",
             size=36, color=NAVY, bold=True)
-    textbox(s, Inches(0.8), Inches(3.7), Inches(11), Inches(0.8),
-            "Ежемесячная динамика по решению и по продуктам\nFMIntAcc  ·  TMN / TaxFM  ·  Brokerage / OTCSM  ·  FICore",
+    textbox(s, Inches(0.8), Inches(3.7), Inches(11), Inches(0.9),
+            "Ежемесячная динамика, закрытие и среднее время обработки\nFMIntAcc  ·  TMN / TaxFM  ·  Brokerage / OTCSM  ·  FICore",
             size=18, color=INK)
-    textbox(s, Inches(0.8), Inches(5.4), Inches(11), Inches(0.9),
-            "Период регистраций: апрель — сентябрь 2026\nСрез статусов: 19 октября 2026  ·  282 задачи  ·  клиент в выгрузке: ПСБ",
+    textbox(s, Inches(0.8), Inches(5.2), Inches(11.5), Inches(1.2),
+            "Конечное состояние: консультация — «Работа завершена»; несоответствие и требование в спринте — «Доступно».\n"
+            "Период регистраций: апрель — сентябрь 2026. Срез: 19 октября 2026. 282 задачи. Клиент в выгрузке: ПСБ.",
             size=14, color=MUTED)
     footer(s, 1)
 
@@ -181,38 +178,37 @@ def slide2(prs):
     kpi_card(s, Inches(0.6), Inches(1.25), Inches(2.9), Inches(1.55),
              "282", "задачи всего", "апрель–сентябрь 2026")
     kpi_card(s, Inches(3.7), Inches(1.25), Inches(2.9), Inches(1.55),
-             "47", "в месяц в среднем", "141 в апр–июн и 141 в июл–сен")
+             "248", "в конечном состоянии", "88% контура закрыто")
     kpi_card(s, Inches(6.8), Inches(1.25), Inches(2.9), Inches(1.55),
-             "93", "открыто сейчас", "33% контура, срез 19.10", value_color=ACCENT)
+             "34", "ещё в работе", "23 консультации, 8 дефектов, 3 требования",
+             value_color=ACCENT)
     kpi_card(s, Inches(9.9), Inches(1.25), Inches(2.8), Inches(1.55),
-             "0", "закрытых несоответствий", "все 65 дефектов ещё открыты", value_color=RED)
-
-    textbox(s, Inches(0.6), Inches(3.05), Inches(12), Inches(0.4),
-            "Состав потока", size=18, color=NAVY, bold=True)
+             "65 дн.", "среднее время обработки", "медиана 32 дня")
 
     data = CategoryChartData()
     data.categories = ["Консультации", "Несоответствия", "Требования в спринте"]
     data.add_series("Задачи", (212, 65, 5))
-    chart = s.shapes.add_chart(XL_CHART_TYPE.DOUGHNUT, Inches(0.5), Inches(3.4),
-                               Inches(5.2), Inches(3.4), data).chart
+    chart = s.shapes.add_chart(
+        XL_CHART_TYPE.DOUGHNUT, Inches(0.5), Inches(3.15), Inches(5.0), Inches(3.5), data
+    ).chart
     chart.has_legend = True
-    chart.legend.position = XL_LEGEND_POSITION.RIGHT
+    chart.legend.position = XL_LEGEND_POSITION.BOTTOM
     chart.legend.include_in_layout = False
     chart.legend.font.size = Pt(12)
     colors = [NAVY2, ACCENT, GOLD]
-    for i, series in enumerate(chart.series):
+    for series in chart.series:
         for j, pt in enumerate(series.points):
             pt.format.fill.solid()
             pt.format.fill.fore_color.rgb = colors[j]
 
-    bullets = s.shapes.add_textbox(Inches(6.0), Inches(3.5), Inches(6.7), Inches(3.2))
-    tf = bullets.text_frame
+    box = s.shapes.add_textbox(Inches(5.6), Inches(3.25), Inches(7.2), Inches(3.4))
+    tf = box.text_frame
     tf.word_wrap = True
     items = [
-        ("75% потока — консультации.", "189 из 212 уже закрыты, медиана 33 дня."),
-        ("23% потока — несоответствия.", "65 штук, ни одно не закрыто за полгода."),
-        ("Поток стабилен.", "Первые и вторые три месяца дали одинаково по 141 задаче."),
-        ("Налог держит половину решения.", "TMN + TaxFM и смежные — 148 задач, 52%."),
+        ("Поток стабилен: 47 задач в месяц.", "141 в апреле–июне и 141 в июле–сентябре."),
+        ("Закрытие консультаций и дефектов почти одинаковое.", "89% консультаций и 88% несоответствий в конечном состоянии."),
+        ("В работе 34 задачи.", "17 консультаций и 6 дефектов ждут клиента."),
+        ("Среднее 65 дней тянет пачка 1 октября.", "Без неё среднее 20 дней, медиана 15."),
     ]
     for i, (a, b) in enumerate(items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
@@ -230,8 +226,9 @@ def slide3(prs):
     data = CategoryChartData()
     data.categories = MONTHS
     data.add_series("Зарегистрировано, шт.", ALL)
-    chart = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED,
-                               Inches(0.4), Inches(1.15), Inches(12.5), Inches(4.7), data).chart
+    chart = s.shapes.add_chart(
+        XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.4), Inches(1.15), Inches(12.5), Inches(4.7), data
+    ).chart
     style_chart(chart, [NAVY2])
     chart.has_legend = False
     plot = chart.plots[0]
@@ -239,10 +236,12 @@ def slide3(prs):
     plot.data_labels.font.size = Pt(12)
     plot.data_labels.font.bold = True
     plot.data_labels.font.color.rgb = NAVY
-    textbox(s, Inches(0.6), Inches(5.95), Inches(12), Inches(1.0),
-            "Ось X — месяц регистрации, ось Y — число задач, шт. Среднее 47. Пик в апреле (58), минимум в июне (39), к осени поток вернулся к среднему.\n"
-            "Последняя регистрация в выгрузке — 29.09.2026, поэтому октябрь на график не ставим: отсутствие октября — свойство среза, а не вывод о нулевом потоке.",
-            size=13, color=MUTED)
+    textbox(
+        s, Inches(0.6), Inches(5.95), Inches(12), Inches(1.0),
+        "Ось X — месяц регистрации, ось Y — число задач, шт. Среднее 47. Пик в апреле (58), минимум в июне (39).\n"
+        "Последняя регистрация в выгрузке — 29.09.2026, октябрь на график не ставим.",
+        size=13, color=MUTED,
+    )
     footer(s, 3)
 
 
@@ -258,8 +257,9 @@ def slide4(prs):
         "Прочие",
     ]
     data.add_series("Задачи", (148, 65, 53, 14, 2))
-    chart = s.shapes.add_chart(XL_CHART_TYPE.BAR_CLUSTERED,
-                               Inches(0.4), Inches(1.15), Inches(8.2), Inches(4.6), data).chart
+    chart = s.shapes.add_chart(
+        XL_CHART_TYPE.BAR_CLUSTERED, Inches(0.4), Inches(1.15), Inches(8.2), Inches(4.6), data
+    ).chart
     style_chart(chart, [NAVY2])
     chart.has_legend = False
     plot = chart.plots[0]
@@ -275,10 +275,12 @@ def slide4(prs):
         ["Прочие", "2", "1%"],
     ], col_w=[Inches(2.2), Inches(1.0), Inches(1.0)])
 
-    textbox(s, Inches(0.6), Inches(5.9), Inches(12.2), Inches(1.05),
-            "В группы включены смежные коды той же части решения: у налога — TaxFMExt и IncDed; у внутреннего учёта — API_FMIAcc и AccFMRule;\n"
-            "у операций — BrTrMnCore, SM, TrustManag, API_Broker; у ядра — API_FCore и API_BTCore. Без них шесть названных продуктов дают 255 из 282 задач (90%).",
-            size=13, color=MUTED)
+    textbox(
+        s, Inches(0.6), Inches(5.9), Inches(12.2), Inches(1.05),
+        "В группы включены смежные коды той же части: налог — TaxFMExt, IncDed; внутренний учёт — API_FMIAcc, AccFMRule;\n"
+        "операции — BrTrMnCore, SM, TrustManag, API_Broker; ядро — API_FCore, API_BTCore. Шесть названных продуктов — 255 из 282 (90%).",
+        size=13, color=MUTED,
+    )
     footer(s, 4)
 
 
@@ -291,98 +293,99 @@ def slide5(prs):
     data.add_series("Внутренний учёт", INTA)
     data.add_series("Операции", OPS)
     data.add_series("Ядро по ЦБ", CORE)
-    chart = s.shapes.add_chart(XL_CHART_TYPE.COLUMN_STACKED,
-                               Inches(0.35), Inches(1.1), Inches(12.6), Inches(4.55), data).chart
+    chart = s.shapes.add_chart(
+        XL_CHART_TYPE.COLUMN_STACKED, Inches(0.35), Inches(1.1), Inches(12.6), Inches(4.55), data
+    ).chart
     style_chart(chart, [NAVY, TEAL, GOLD, NAVY2])
-    textbox(s, Inches(0.6), Inches(5.75), Inches(12.2), Inches(1.2),
-            "Ось X — месяц, ось Y — число зарегистрированных задач, шт. Налог каждый месяц — самая большая доля (19–29 задач).\n"
-            "Внутренний учёт колеблется 8–14. Операции были высокими в апреле (16), затем 6–11. Ядро стабильно малое: 2–3 задачи в месяц.\n"
-            "Итог по полугодиям совпал: 141 задача в апреле–июне и 141 в июле–сентябре.",
-            size=13, color=MUTED)
+    textbox(
+        s, Inches(0.6), Inches(5.75), Inches(12.2), Inches(1.2),
+        "Ось X — месяц, ось Y — число зарегистрированных задач, шт. Налог каждый месяц самая большая доля (19–29).\n"
+        "Внутренний учёт 8–14. Операции после апреля (16) держатся на 6–11. Ядро стабильно малое: 2–3 в месяц.",
+        size=13, color=MUTED,
+    )
     footer(s, 5)
 
 
 def slide6(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header_bar(s, "ПРОДУКТЫ", "Ежемесячно по названным продуктам")
-    add_table(s, Inches(0.5), Inches(1.2), Inches(12.3), Inches(3.7), [
-        ["Продукт", "Часть решения", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Итого", "Открыто"],
-        ["TMN", "Налоговый учёт", "24", "19", "18", "19", "23", "23", "126", "39"],
-        ["FMIntAcc", "Внутренний учёт", "10", "13", "9", "9", "13", "7", "61", "24"],
-        ["Brokerage", "Операции", "9", "4", "7", "4", "5", "5", "34", "8"],
-        ["TaxFM", "Налоговый учёт", "3", "1", "0", "3", "3", "3", "13", "6"],
-        ["FICore", "Ядро по ЦБ", "0", "2", "3", "1", "2", "3", "11", "3"],
-        ["OTCSM", "Операции", "3", "0", "0", "2", "4", "1", "10", "3"],
-    ], col_w=[Inches(1.5), Inches(2.2), Inches(0.85), Inches(0.85), Inches(0.85),
-              Inches(0.85), Inches(0.85), Inches(0.85), Inches(1.0), Inches(1.15)])
-    textbox(s, Inches(0.6), Inches(5.15), Inches(12.2), Inches(1.7),
-            "TMN — ядро нагрузки: 23–24 задачи в апреле, августе и сентябре, провал только в июне (18). На конец среза открыто 39.\n"
-            "FMIntAcc держит 7–13 в месяц, открыто 24. Brokerage после апрельского всплеска (9) вышел на 4–7. FICore растёт слабо, но стабильно: с нуля в апреле до 3 в сентябре.\n"
-            "OTCSM точечный: в мае–июне нули, в августе 4. TaxFM — 0–3 в месяц, без тренда вниз.",
-            size=14, color=INK)
+    header_bar(s, "ПРОДУКТЫ", "Поток, закрытие и время обработки")
+    add_table(s, Inches(0.4), Inches(1.15), Inches(12.5), Inches(4.35), [
+        ["Продукт", "Часть", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Итого", "Закрыто", "В работе", "Среднее, дн.", "Медиана, дн."],
+        ["TMN", "Налог", "24", "19", "18", "19", "23", "23", "126", "113", "13", "66", "49"],
+        ["FMIntAcc", "Внутр. учёт", "10", "13", "9", "9", "13", "7", "61", "53", "8", "58", "27"],
+        ["Brokerage", "Операции", "9", "4", "7", "4", "5", "5", "34", "28", "6", "63", "21"],
+        ["TaxFM", "Налог", "3", "1", "0", "3", "3", "3", "13", "12", "1", "67", "39"],
+        ["FICore", "Ядро ЦБ", "0", "2", "3", "1", "2", "3", "11", "8", "3", "31", "24"],
+        ["OTCSM", "Операции", "3", "0", "0", "2", "4", "1", "10", "9", "1", "79", "53"],
+    ], col_w=[Inches(1.35), Inches(1.25), Inches(0.7), Inches(0.7), Inches(0.7),
+              Inches(0.7), Inches(0.7), Inches(0.7), Inches(0.85), Inches(1.0),
+              Inches(1.05), Inches(1.4), Inches(1.4)])
+    textbox(
+        s, Inches(0.6), Inches(5.65), Inches(12.2), Inches(1.25),
+        "Время — от регистрации до конечного состояния, только закрытые задачи. TMN — и основной поток, и самый длинный хвост по медиане (49 дней).\n"
+        "FICore закрывается быстрее всех из названных продуктов: среднее 31 день, медиана 24. OTCSM редкий, но долгий: среднее 79, медиана 53.",
+        size=14, color=INK,
+    )
     footer(s, 6)
 
 
 def slide7(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header_bar(s, "ЧТО ЗАКРЫВАЕТСЯ", "Консультации уходят, несоответствия копятся")
+    header_bar(s, "ВРЕМЯ ОБРАБОТКИ", "От регистрации до конечного состояния")
     data = CategoryChartData()
-    data.categories = MONTHS
-    data.add_series("Консультации", CONS)
-    data.add_series("Несоответствия", DEF)
-    chart = s.shapes.add_chart(XL_CHART_TYPE.LINE_MARKERS,
-                               Inches(0.4), Inches(1.15), Inches(7.6), Inches(4.5), data).chart
-    style_chart(chart, [NAVY2, ACCENT])
+    data.categories = ["Всё решение", "Налог", "Внутр. учёт", "Операции", "Ядро ЦБ"]
+    data.add_series("Среднее, дни", (65, 65, 59, 71, 60))
+    data.add_series("Медиана, дни", (32, 39, 27, 23, 32))
+    chart = s.shapes.add_chart(
+        XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(0.35), Inches(1.1), Inches(7.7), Inches(4.5), data
+    ).chart
+    style_chart(chart, [NAVY, TEAL])
+    plot = chart.plots[0]
+    plot.has_data_labels = True
+    plot.data_labels.font.size = Pt(10)
 
-    box = s.shapes.add_shape(1, Inches(8.2), Inches(1.35), Inches(4.5), Inches(4.2))
-    box.fill.solid()
-    box.fill.fore_color.rgb = RGBColor(0xFD, 0xF2, 0xEE)
-    box.line.color.rgb = ACCENT
-    tf = box.text_frame
-    tf.word_wrap = True
-    p = tf.paragraphs[0]
-    r = p.add_run()
-    set_run(r, "Главный факт среза", size=16, bold=True, color=ACCENT)
-    facts = [
-        "Закрыто 189 задач — все консультации.",
-        "Несоответствий закрыто 0 из 65.",
-        "57 дефектов стоят в статусе «Доступно».",
-        "5 требований в спринте тоже открыты.",
-        "Открытые дефекты — 70% текущего контура.",
-        "1 октября массово закрыты 76 старых консультаций (в т.ч. 43 апрельских) — это событие среза, не органический отток октября.",
-    ]
-    for f in facts:
-        p = tf.add_paragraph()
-        p.space_before = Pt(8)
-        r = p.add_run()
-        set_run(r, f, size=13, color=INK)
-    textbox(s, Inches(0.6), Inches(5.8), Inches(12.2), Inches(1.1),
-            "Ось X — месяц регистрации, ось Y — число задач, шт. Несоответствия приходят ровно: 11–14 в месяц, кроме июня (3).\n"
-            "Пока закрывается только консультационный контур, дефектный хвост растёт линейно — примерно на десяток в месяц.",
-            size=13, color=MUTED)
+    add_table(s, Inches(8.15), Inches(1.25), Inches(4.7), Inches(3.3), [
+        ["Тип задачи", "Закрыто", "Среднее", "Медиана"],
+        ["Консультация", "189 / 212", "66 дн.", "33 дн."],
+        ["Несоответствие", "57 / 65", "62 дн.", "23 дн."],
+        ["Требование в спринте", "2 / 5", "45 дн.", "45 дн."],
+    ], col_w=[Inches(1.9), Inches(1.05), Inches(0.9), Inches(0.85)])
+
+    textbox(
+        s, Inches(8.15), Inches(4.7), Inches(4.7), Inches(1.05),
+        "Ось Y графика — дни. Среднее по решению 65 дней, медиана 32: распределение длинное справа.",
+        size=12, color=MUTED,
+    )
+    textbox(
+        s, Inches(0.6), Inches(5.75), Inches(12.2), Inches(1.2),
+        "1 октября в конечное состояние переведены 97 задач (76 консультаций, 20 несоответствий, 1 требование) со средним возрастом 134 дня.\n"
+        "Без этой пачки среднее по остальным 151 закрытой задаче — 20 дней, медиана 15. Для разговора про «обычный цикл» смотреть медиану и эту оценку.",
+        size=13, color=MUTED,
+    )
     footer(s, 7)
 
 
 def slide8(prs):
     s = prs.slides.add_slide(prs.slide_layouts[6])
-    header_bar(s, "ОТКРЫТЫЙ КОНТУР", "93 задачи на 19 октября")
-    add_table(s, Inches(0.5), Inches(1.2), Inches(12.3), Inches(2.55), [
-        ["Часть решения", "Всего", "Открыто", "Из них дефекты", "Консультации открыты", "Средний возраст открытых, дни"],
-        ["Налоговый учёт", "148", "48", "35", "9", "108"],
-        ["Внутренний учёт", "65", "26", "20", "6", "98"],
-        ["Операции", "53", "15", "10", "4", "94"],
-        ["Ядро по ЦБ", "14", "3", "0", "3", "60"],
-        ["Прочие", "2", "1", "0", "1", "138"],
-    ], col_w=[Inches(2.4), Inches(1.3), Inches(1.5), Inches(2.1), Inches(2.5), Inches(2.5)])
+    header_bar(s, "В РАБОТЕ", "34 задачи не в конечном состоянии")
+    add_table(s, Inches(0.5), Inches(1.2), Inches(12.3), Inches(2.35), [
+        ["Часть решения", "Всего", "Закрыто", "В работе", "Из них дефекты", "Среднее закрытых, дн."],
+        ["Налоговый учёт", "148", "134", "14", "2", "65"],
+        ["Внутренний учёт", "65", "57", "8", "2", "59"],
+        ["Операции", "53", "45", "8", "4", "71"],
+        ["Ядро по ЦБ", "14", "11", "3", "0", "60"],
+        ["Прочие", "2", "1", "1", "0", "55"],
+    ], col_w=[Inches(2.5), Inches(1.4), Inches(1.5), Inches(1.6), Inches(2.1), Inches(3.2)])
 
-    textbox(s, Inches(0.6), Inches(4.0), Inches(12.2), Inches(2.8),
-            "Где сидит открытое\n"
-            "• Налог: 39 открытых TMN + 6 TaxFM. Это и основной поток, и основной хвост.\n"
-            "• Внутренний учёт: 24 открытых FMIntAcc, из них большая часть — несоответствия в статусе «Доступно».\n"
-            "• Операции: 8 Brokerage и 3 OTCSM открыты; плюс три открытых BrTrMnCore, включая приоритет 1 по производительности API_Counter_SaveLockFlag.\n"
-            "• Три открытых приоритета 4 — все несоответствия по замедлениям (OTCSM, Brokerage, FMIntAcc).\n"
-            "• Ядро по ЦБ дефектов в выгрузке не копит: 3 открытых — консультации.",
-            size=14, color=INK)
+    textbox(
+        s, Inches(0.6), Inches(3.85), Inches(12.2), Inches(2.95),
+        "Где висит открытое\n"
+        "• 23 консультации: 17 «уточняется у клиента», 4 «обращение в УА», 2 «уточняется у автора».\n"
+        "• 8 несоответствий: 6 «уточняется у клиента», 2 «уточняется в УА». В конечном «Доступно» уже 57 из 65.\n"
+        "• 3 требования в спринте: 2 «зарегистрировано», 1 «готов к демо» — все на налоге.\n"
+        "• По продуктам в работе: TMN 13, FMIntAcc 8, Brokerage 6, FICore 3, TaxFM 1, OTCSM 1.",
+        size=15, color=INK,
+    )
     footer(s, 8)
 
 
@@ -391,15 +394,15 @@ def slide9(prs):
     header_bar(s, "К ВСТРЕЧЕ", "Что важно сказать по сопровождению")
     items = [
         ("Поток не растёт.",
-         "47 задач в месяц, полугодия совпали по 141. Сопровождение по объёму входа стабильно."),
-        ("Растёт не вход, а хвост дефектов.",
-         "Консультации закрываются (89%). Несоответствия за полгода не закрывались ни разу. При 11–14 новых в месяц это управляемый, но накопленный риск."),
+         "47 задач в месяц, полугодия совпали по 141. Вход стабилен."),
+        ("Контур закрывается, а не копится.",
+         "88% задач в конечном состоянии. Несоответствия закрываются так же, как консультации (88% и 89%). В работе 34 задачи, в основном ожидание клиента."),
+        ("Среднее время 65 дней, типичное ближе к 32.",
+         "Медиана 32 дня. Без массового перевода 1 октября среднее 20 дней. FICore быстрее названных продуктов (31 / 24), OTCSM и TMN дольше по медиане."),
         ("Половину решения держит налоговый учёт.",
-         "TMN — 126 задач и 39 открытых. Любой разговор про мощность сопровождения начинается с TMN, затем FMIntAcc (61 / 24 открытых)."),
-        ("Операции и ядро — меньший, но не нулевой контур.",
-         "Brokerage+OTCSM дают 44 задачи названных продуктов; FICore — 11, без дефектного хвоста. Производительность API — отдельная тема (prio 1 и три prio 4)."),
-        ("Октябрь в динамике не интерпретировать.",
-         "В выгрузке нет регистраций после 29.09. 1 октября массово закрыты 76 консультаций — это событие данных, не «рекорд закрытий»."),
+         "TMN — 126 задач, 13 ещё в работе, медиана обработки 49 дней. Второй контур — FMIntAcc (61 / 8 в работе)."),
+        ("Октябрь в динамике входа не интерпретировать.",
+         "Регистраций после 29.09 в выгрузке нет. 1 октября — пачка из 97 закрытий, не «рекорд производительности»."),
     ]
     box = s.shapes.add_textbox(Inches(0.7), Inches(1.2), Inches(12), Inches(5.6))
     tf = box.text_frame
